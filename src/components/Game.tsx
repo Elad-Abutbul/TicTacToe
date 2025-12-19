@@ -1,79 +1,62 @@
 import { useEffect, useState } from "react";
 import Board from "./Board";
+import { GAME_CONSTANTS } from "../constants/GameConstants";
 
 export default function Game() {
-  const [squares, setSquares] = useState<(string | null)[]>(
-    Array(9).fill(null)
+  const [squares, setSquares] = useState<("X" | "O" | null)[]>(
+    Array(GAME_CONSTANTS.BOARD_SIZE).fill(null)
   );
   const [isXNext, setIsXNext] = useState(true);
-  const [timer, setTimer] = useState(10);
+  const [timer, setTimer] = useState(GAME_CONSTANTS.TURN_DURATION_SECONDS);
   const [stop, setStop] = useState(false);
 
+  const pauseButtonLabel = stop ? GAME_CONSTANTS.RESUME : GAME_CONSTANTS.STOP;
+
   function calculateWinner(): "X" | "O" | null {
-    const lines = [
-      [0, 1, 2],
-      [3, 4, 5],
-      [6, 7, 8],
-      [0, 3, 6],
-      [1, 4, 7],
-      [2, 5, 8],
-      [0, 4, 8],
-      [2, 4, 6],
-    ];
+    for (const [a, b, c] of GAME_CONSTANTS.WINNING_LINES) {
+      const value = squares[a];
 
-    for (let i = 0; i < lines.length; i++) {
-      const a = lines[i][0];
-      const b = lines[i][1];
-      const c = lines[i][2];
-
-      if (
-        squares[a] !== null &&
-        squares[a] === squares[b] &&
-        squares[a] === squares[c]
-      ) {
-        return squares[a] as "X" | "O";
+      if (value && value === squares[b] && value === squares[c]) {
+        return value;
       }
     }
-
     return null;
   }
 
   const winner = calculateWinner();
 
-  useEffect(() => {
-    if (winner) setStop(true);
-  }, [winner]);
-
   function handleSquareClick(index: number) {
-    if (stop) return;
+    if (stop || winner) return;
     if (squares[index]) return;
     const nextSquares = [...squares];
-    nextSquares[index] = isXNext ? "X" : "O";
+    nextSquares[index] = isXNext ? GAME_CONSTANTS.X : GAME_CONSTANTS.O;
     setSquares(nextSquares);
     setIsXNext((prev) => !prev);
-    setTimer(10);
+    setTimer(GAME_CONSTANTS.TURN_DURATION_SECONDS);
   }
 
   function handleReset() {
     setIsXNext(true);
-    setSquares(Array(9).fill(null));
-    setTimer(10);
+    setSquares(Array(GAME_CONSTANTS.BOARD_SIZE).fill(null));
+    setTimer(GAME_CONSTANTS.TURN_DURATION_SECONDS);
     setStop(false);
   }
 
   useEffect(() => {
     if (stop || winner) return;
-    const timerId = setTimeout(() => {
-      if (timer === 0) {
-        setIsXNext((prev) => !prev);
-        setTimer(10);
-      } else {
-        setTimer((prev) => prev - 1);
-      }
-    }, 1000);
 
-    return () => clearTimeout(timerId);
-  }, [timer, stop, winner]);
+    const id = setInterval(() => {
+      setTimer((prev) => {
+        if (prev === 0) {
+          setIsXNext((p) => !p);
+          return GAME_CONSTANTS.TURN_DURATION_SECONDS;
+        }
+        return prev - 1;
+      });
+    }, GAME_CONSTANTS.TIMER_INTERVAL_MS);
+
+    return () => clearInterval(id);
+  }, [stop, winner]);
 
   function handleStop() {
     setStop((stop) => !stop);
@@ -81,22 +64,20 @@ export default function Game() {
   return (
     <div className="game-container">
       <h1>Tic Tac Toe</h1>
-      {winner && <h2>Winner: {winner}</h2>}
-      {winner ? (
-        ""
-      ) : (
-        <h2>
-          time for player {isXNext ? "X" : "O"}- {timer} sec
-        </h2>
-      )}
       <Board squares={squares} onSquareClick={handleSquareClick} />
-      {winner ? "" : <p>Next Player: {isXNext ? "X" : "O"}</p>}
-      <button onClick={handleReset}>reset</button>
       {winner ? (
-        ""
+        <h2>Winner: {winner}</h2>
       ) : (
-        <button onClick={handleStop}>{stop ? "resume" : "stop"}</button>
+        <>
+          <h2>
+            time for player {isXNext ? GAME_CONSTANTS.X : GAME_CONSTANTS.O} : {timer} sec
+          </h2>
+          <p>Next Player: {isXNext ? GAME_CONSTANTS.X : GAME_CONSTANTS.O}</p>
+          <button onClick={handleStop}>{pauseButtonLabel}</button>
+        </>
       )}
+
+      <button onClick={handleReset}>reset</button>
     </div>
   );
 }

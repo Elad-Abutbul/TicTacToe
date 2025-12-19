@@ -9,7 +9,7 @@ export default function Board({ squares, onSquareClick }: BoardProps) {
   return (
     <div className="board">
       {squares.map((square, index) => {
-        return <Square value={square} onClick={() => onSquareClick(index)} />;
+        return <Square key={index} value={square} onClick={() => onSquareClick(index)} />;
       })}
     </div>
   );
